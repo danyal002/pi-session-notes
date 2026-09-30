@@ -77,6 +77,10 @@ On session start, pi asks how to set up notes for the session; the choice is rem
 - Renaming a **non-active** session from the selector only updates its notes file the next time that session resumes.
 - The undo command only touches the active session's notes file; check `~/.pi/notes/inbox.md` for saves made outside a mapped pi session.
 
+## AI disclosure
+
+This project was built with an AI coding agent (Anthropic Claude, running in [pi](https://github.com/earendil-works/pi)). The agent wrote the initial implementation, the bug fixes found during live testing, and this documentation. All feature design decisions, review, approval, and testing were done by a human — nothing was committed without explicit human sign-off.
+
 ## License
 
 MIT
