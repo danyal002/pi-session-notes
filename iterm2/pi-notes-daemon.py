@@ -22,7 +22,24 @@ import os
 import iterm2
 
 TTY_MAP = os.path.expanduser("~/.pi/agent/session-notes/tty-map.json")
-INBOX = os.path.expanduser("~/.pi/notes/inbox.md")
+
+
+def configured_notes_dir():
+    # Mirrors the pi extension's sessionNotes.directory setting (user settings file).
+    default = os.path.expanduser("~/.pi/notes")
+    try:
+        with open(os.path.expanduser("~/.pi/agent/settings.json")) as f:
+            custom = json.load(f).get("sessionNotes", {}).get("directory")
+    except (OSError, ValueError):
+        return default
+    if not custom:
+        return default
+    if custom.startswith("~"):
+        return os.path.expanduser(custom)
+    return custom
+
+
+INBOX = os.path.join(configured_notes_dir(), "inbox.md")
 
 
 def notes_file_for(tty):

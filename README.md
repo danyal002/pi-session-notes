@@ -2,7 +2,7 @@
 
 Highlight text in iTerm2, press a hotkey, and it lands in the notes file of the pi session running in that terminal. No clipboard involved — the selection is read straight from the screen buffer.
 
-Each pi session gets its own notes file, named after the session. Rename the session, the file renames with it.
+Each pi session gets its own notes file, named after the session. Rename the session, the file renames with it. Notes files live in `~/.pi/notes` by default; configure `sessionNotes.directory` in your pi settings to change it:
 
 ```
 ┌─────────────┐  hotkey   ┌──────────────────┐  reads selection  ┌────────────────────────┐
@@ -44,6 +44,20 @@ Copies the daemon into iTerm2's `Scripts/AutoLaunch` (both the default location 
 1. **Settings → General → Magic → Enable Python API** (grant access to the Scripts folder when prompted)
 2. **Settings → Keys → Key Bindings → +** → pick a shortcut → Action **"Invoke Script Function"** → `save_selection_to_pi_notes()`
 3. Restart iTerm2
+
+## Configuration
+
+In `~/.pi/agent/settings.json` (or project settings):
+
+```json
+{
+  "sessionNotes": {
+    "directory": "~/notes/pi"
+  }
+}
+```
+
+Takes effect for newly created notes files on the next session; existing files stay where they are (absolute paths in the tty map keep working across a directory change). The daemon's `inbox.md` fallback follows the same setting, read at daemon startup.
 
 ## Usage
 

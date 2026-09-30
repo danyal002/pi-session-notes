@@ -13,10 +13,18 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
-const NOTES_DIR = path.join(os.homedir(), ".pi", "notes");
 const STATE_DIR = path.join(os.homedir(), ".pi", "agent", "session-notes");
 const BINDINGS_FILE = path.join(STATE_DIR, "bindings.json");
 const TTY_MAP_FILE = path.join(STATE_DIR, "tty-map.json");
+
+// sessionNotes.directory in user or project settings; defaults to ~/.pi/notes.
+// Read per activation so a settings change takes effect on the next session.
+function notesDir(pi: ExtensionAPI): string {
+	const custom = (pi.getSettings() as { sessionNotes?: { directory?: string } }).sessionNotes?.directory;
+	if (!custom) return path.join(os.homedir(), ".pi", "notes");
+	const expanded = custom.startsWith("~") ? path.join(os.homedir(), custom.slice(1)) : custom;
+	return path.isAbsolute(expanded) ? expanded : path.resolve(expanded);
+}
 
 interface Binding {
 	notesFile: string;
@@ -48,13 +56,13 @@ function sanitizeName(name: string): string {
 	return cleaned || "untitled";
 }
 
-function uniqueNotesFile(baseName: string): string {
-	fs.mkdirSync(NOTES_DIR, { recursive: true });
-	let candidate = path.join(NOTES_DIR, baseName);
+function uniqueNotesFile(dir: string, baseName: string): string {
+	fs.mkdirSync(dir, { recursive: true });
+	let candidate = path.join(dir, baseName);
 	let n = 2;
 	while (fs.existsSync(candidate)) {
 		const ext = path.extname(baseName);
-		candidate = path.join(NOTES_DIR, `${path.basename(baseName, ext)}-${n}${ext}`);
+		candidate = path.join(dir, `${path.basename(baseName, ext)}-${n}${ext}`);
 		n += 1;
 	}
 	return candidate;
@@ -133,7 +141,7 @@ export default function sessionNotesExtension(pi: ExtensionAPI) {
 		const desired = `${sanitizeName(rawName ?? `untitled-${new Date().toISOString().slice(0, 16).replace("T", "-")}`)}.md`;
 		if (path.basename(active.notesFile) === desired) return;
 
-		const target = uniqueNotesFile(desired);
+		const target = uniqueNotesFile(path.dirname(active.notesFile), desired);
 		const previous = active.notesFile;
 		ownWriteUntil = Date.now() + 1500;
 		try {
@@ -246,7 +254,7 @@ export default function sessionNotesExtension(pi: ExtensionAPI) {
 		persistBinding();
 		updateTtyMap();
 		if (!fs.existsSync(notesFile)) {
-			fs.mkdirSync(NOTES_DIR, { recursive: true });
+			fs.mkdirSync(path.dirname(notesFile), { recursive: true });
 			fs.writeFileSync(notesFile, `# Notes — ${path.basename(notesFile, ".md")}\n`);
 		}
 		watchNotes(pi, ctx);
@@ -274,20 +282,21 @@ export default function sessionNotesExtension(pi: ExtensionAPI) {
 		}
 
 		if (choice === EXISTING) {
-			fs.mkdirSync(NOTES_DIR, { recursive: true });
-			const files = fs.readdirSync(NOTES_DIR).filter((f) => f.endsWith(".md")).sort();
+			const dir = notesDir(pi);
+			fs.mkdirSync(dir, { recursive: true });
+			const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md")).sort();
 			if (files.length === 0) {
-				ctx.ui.notify(`No notes files in ${NOTES_DIR} yet`, "warning");
+				ctx.ui.notify(`No notes files in ${dir} yet`, "warning");
 				return;
 			}
 			const picked = await ctx.ui.select("Pick a notes file", files);
 			if (picked === undefined) return;
-			await activate(pi, ctx, sessionFile, path.join(NOTES_DIR, picked));
+			await activate(pi, ctx, sessionFile, path.join(dir, picked));
 			return;
 		}
 
 		const name = ctx.sessionManager.getSessionName() ?? `untitled-${new Date().toISOString().slice(0, 16).replace("T", "-")}`;
-		const notesFile = uniqueNotesFile(`${sanitizeName(name)}.md`);
+		const notesFile = uniqueNotesFile(notesDir(pi), `${sanitizeName(name)}.md`);
 		await activate(pi, ctx, sessionFile, notesFile);
 		ctx.ui.notify(`Notes: ${path.basename(notesFile)}`, "info");
 	}
