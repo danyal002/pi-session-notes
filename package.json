@@ -1,0 +1,21 @@
+{
+  "name": "pi-session-notes",
+  "version": "0.1.0",
+  "description": "Per-session notes for pi: highlight text in iTerm2, save it to the session's notes file without touching the clipboard",
+  "type": "module",
+  "keywords": ["pi-package", "pi", "notes", "iterm2"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danyal002/pi-session-notes.git"
+  },
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": ["./extension/index.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}
